@@ -1,0 +1,99 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Vendor {
+  id        String    @id @default(uuid())
+  vendorId  String    @unique @map("vendor_id")
+  name      String
+  category  String
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  invoices Invoice[]
+
+  @@map("vendors")
+}
+
+model Customer {
+  id        String    @id @default(uuid())
+  customerId String  @unique @map("customer_id")
+  name      String
+  email     String
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  invoices Invoice[]
+
+  @@map("customers")
+}
+
+model Invoice {
+  id          String     @id @default(uuid())
+  invoiceId   String     @unique @map("invoice_id")
+  vendorId    String     @map("vendor_id")
+  customerId  String     @map("customer_id")
+  invoiceDate DateTime   @map("invoice_date") @db.Date
+  dueDate     DateTime   @map("due_date") @db.Date
+  totalAmount Decimal    @map("total_amount") @db.Decimal(12, 2)
+  status      String     // paid, pending, overdue
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  vendor      Vendor     @relation(fields: [vendorId], references: [vendorId], onDelete: Cascade)
+  customer    Customer   @relation(fields: [customerId], references: [customerId], onDelete: Cascade)
+  lineItems   LineItem[]
+  payments    Payment[]
+
+  @@index([vendorId])
+  @@index([customerId])
+  @@index([invoiceDate])
+  @@index([status])
+  @@map("invoices")
+}
+
+model LineItem {
+  id          String   @id @default(uuid())
+  itemId      String   @unique @map("item_id")
+  invoiceId   String   @map("invoice_id")
+  description String
+  quantity    Int
+  unitPrice   Decimal  @map("unit_price") @db.Decimal(12, 2)
+  total       Decimal  @db.Decimal(12, 2)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+  @@map("line_items")
+}
+
+model Payment {
+  id          String   @id @default(uuid())
+  paymentId   String   @unique @map("payment_id")
+  invoiceId   String   @map("invoice_id")
+  paymentDate DateTime @map("payment_date") @db.Date
+  amount      Decimal  @db.Decimal(12, 2)
+  method      String   // bank_transfer, credit_card, etc.
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+  @@index([paymentDate])
+  @@map("payments")
+}
+
+
+
+
